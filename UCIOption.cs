@@ -20,7 +20,7 @@ internal class UCIType<T> : IUCIType
 
     public UCIType(string type)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(type, nameof(type));
+        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -89,7 +89,7 @@ internal class UCICombo : IUCIType
 
     public UCICombo(string type)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(type, nameof(type));
+        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -144,7 +144,7 @@ internal class UCIButton : IUCIType
 
     public UCIButton(string type)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(type, nameof(type));
+        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -168,8 +168,8 @@ internal class UCIOption
 
     public UCIOption(string name, string type)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(name, nameof(name));
-        ArgumentNullException.ThrowIfNullOrEmpty(type, nameof(type));
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -180,9 +180,9 @@ internal class UCIOption
 
         string optionType = tokens[0];
 
-        ArgumentNullException.ThrowIfNullOrEmpty(optionType, nameof(optionType));
+        ArgumentException.ThrowIfNullOrEmpty(optionType, nameof(optionType));
 
-        if (!Enum.TryParse<OptionType>(optionType, true, out OptionType parsed))
+        if (!Enum.TryParse(optionType, true, out OptionType parsed))
         {
             throw new ArgumentException(Utils.GetMessage(Messages.InvalidOptionType, optionType), nameof(type));
         }

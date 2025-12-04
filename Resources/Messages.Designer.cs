@@ -19,7 +19,7 @@ namespace Promote {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Messages {
@@ -61,7 +61,268 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Type string is empty.
+        ///   Looks up a localized string similar to black.
+        /// </summary>
+        internal static string Board_Color_Black {
+            get {
+                return ResourceManager.GetString("Board_Color_Black", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to white.
+        /// </summary>
+        internal static string Board_Color_White {
+            get {
+                return ResourceManager.GetString("Board_Color_White", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: input is empty or null..
+        /// </summary>
+        internal static string Board_InvalidFEN_Empty {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_Empty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: invalid en-passant square {0}..
+        /// </summary>
+        internal static string Board_InvalidFEN_InvalidEP {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_InvalidEP", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: fullmove number is not a valid integer ({0})..
+        /// </summary>
+        internal static string Board_InvalidFEN_InvalidFullMove {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_InvalidFullMove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: halfmove clock is not a valid integer ({0})..
+        /// </summary>
+        internal static string Board_InvalidFEN_InvalidHalfMove {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_InvalidHalfMove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: invalid piece &apos;{0}&apos; at {1} in row {2}..
+        /// </summary>
+        internal static string Board_InvalidFEN_InvalidPiece {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_InvalidPiece", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: row {0} contains {1} squares (must be 8)..
+        /// </summary>
+        internal static string Board_InvalidFEN_InvalidRowSquares {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_InvalidRowSquares", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: expected 6 space-separated fields (piece, active color, castling, en-passant, halfmove, fullmove)..
+        /// </summary>
+        internal static string Board_InvalidFEN_PartsCount {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_PartsCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: row {0} contains too many squares..
+        /// </summary>
+        internal static string Board_InvalidFEN_RowOverflow {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_RowOverflow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid FEN: expected 8 rows in the piece-placement field..
+        /// </summary>
+        internal static string Board_InvalidFEN_RowsCount {
+            get {
+                return ResourceManager.GetString("Board_InvalidFEN_RowsCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: {0} {1}&apos;s move not by rules..
+        /// </summary>
+        internal static string Board_InvalidMove {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: empty origin (&apos;{0}&apos;)..
+        /// </summary>
+        internal static string Board_InvalidMove_EmptyPosition {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_EmptyPosition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: piece to move is the wrong color ({0})..
+        /// </summary>
+        internal static string Board_InvalidMove_InvalidPiece {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_InvalidPiece", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: invalid algebraic position (&apos;{0}&apos;)..
+        /// </summary>
+        internal static string Board_InvalidMove_InvalidPosition {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_InvalidPosition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: move (&apos;{0}&apos;-&apos;{1}&apos;) exposes king to check..
+        /// </summary>
+        internal static string Board_InvalidMove_KingUnderAttack {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_KingUnderAttack", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: origin or target square (or both) is null or empty..
+        /// </summary>
+        internal static string Board_InvalidMove_NullSquare {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_NullSquare", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: {0} is invalid for promotion..
+        /// </summary>
+        internal static string Board_InvalidMove_PromotionPiece {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_PromotionPiece", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: origin and target are occupied by same color pieces..
+        /// </summary>
+        internal static string Board_InvalidMove_SameColor {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_SameColor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid move: same square..
+        /// </summary>
+        internal static string Board_InvalidMove_SameSquare {
+            get {
+                return ResourceManager.GetString("Board_InvalidMove_SameSquare", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid state: {0} king is missing from board..
+        /// </summary>
+        internal static string Board_InvalidState_KingMissing {
+            get {
+                return ResourceManager.GetString("Board_InvalidState_KingMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid state: piece is unknown..
+        /// </summary>
+        internal static string Board_InvalidState_UnknownPiece {
+            get {
+                return ResourceManager.GetString("Board_InvalidState_UnknownPiece", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to bishop.
+        /// </summary>
+        internal static string Board_Pieces_Bishop {
+            get {
+                return ResourceManager.GetString("Board_Pieces_Bishop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to king.
+        /// </summary>
+        internal static string Board_Pieces_King {
+            get {
+                return ResourceManager.GetString("Board_Pieces_King", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to knight.
+        /// </summary>
+        internal static string Board_Pieces_Knight {
+            get {
+                return ResourceManager.GetString("Board_Pieces_Knight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to pawn.
+        /// </summary>
+        internal static string Board_Pieces_Pawn {
+            get {
+                return ResourceManager.GetString("Board_Pieces_Pawn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to queen.
+        /// </summary>
+        internal static string Board_Pieces_Queen {
+            get {
+                return ResourceManager.GetString("Board_Pieces_Queen", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to rook.
+        /// </summary>
+        internal static string Board_Pieces_Rook {
+            get {
+                return ResourceManager.GetString("Board_Pieces_Rook", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dispose failed..
+        /// </summary>
+        internal static string DisposeFail {
+            get {
+                return ResourceManager.GetString("DisposeFail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Type string is empty..
         /// </summary>
         internal static string EmptyType {
             get {
@@ -84,6 +345,24 @@ namespace Promote {
         internal static string MalformedType {
             get {
                 return ResourceManager.GetString("MalformedType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to start process..
+        /// </summary>
+        internal static string ProcessStartFailed {
+            get {
+                return ResourceManager.GetString("ProcessStartFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Executing UCI command &apos;{0}&apos;..
+        /// </summary>
+        internal static string UCICommand {
+            get {
+                return ResourceManager.GetString("UCICommand", resourceCulture);
             }
         }
         
@@ -111,6 +390,33 @@ namespace Promote {
         internal static string UCICommandTimeout {
             get {
                 return ResourceManager.GetString("UCICommandTimeout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UCI engine {0} by {1} started..
+        /// </summary>
+        internal static string UCIStarted {
+            get {
+                return ResourceManager.GetString("UCIStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UCI engine {0} by {1} stopped..
+        /// </summary>
+        internal static string UCIStopped {
+            get {
+                return ResourceManager.GetString("UCIStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unexpected error while try killing process..
+        /// </summary>
+        internal static string UnexpectedTryKill {
+            get {
+                return ResourceManager.GetString("UnexpectedTryKill", resourceCulture);
             }
         }
         

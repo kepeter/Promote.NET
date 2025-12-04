@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,7 @@ internal class Engine : IDisposable
 
     private readonly ConcurrentQueue<string> _receiveQueue = new ConcurrentQueue<string>();
 
-    private readonly object _waitLock = new();
+    private readonly object _waitLock = new object();
     private TaskCompletionSource<string?>? _waitTcs;
     private string? _waitFlag;
 
@@ -39,7 +40,7 @@ internal class Engine : IDisposable
 
     public async Task<bool> Start(CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(_engineSettings.Path, nameof(_engineSettings.Path));
+        ArgumentException.ThrowIfNullOrEmpty(_engineSettings.Path, nameof(_engineSettings.Path));
 
         bool started = false;
 
@@ -55,6 +56,12 @@ internal class Engine : IDisposable
                 {
                     StopProcess();
                 }
+                else
+                {
+                    Log(Utils.GetMessage(Messages.UCIStarted, EngineName, EngineAuthor));
+
+                    await NewGame();
+                }
             }
         }
 
@@ -67,6 +74,8 @@ internal class Engine : IDisposable
 
         await QuitEngine().ConfigureAwait(false);
 
+        Log(Utils.GetMessage(Messages.UCIStopped, EngineName, EngineAuthor));
+
         StopProcess();
     }
 
@@ -77,14 +86,14 @@ internal class Engine : IDisposable
         await IsReady().ConfigureAwait(false);
     }
 
-    public async Task<bool> IsReady()
+    public Task<bool> IsReady()
     {
-        return await Send("isready", "readyok");
+        return Send("isready", "readyok");
     }
 
-    public async Task<bool> SetDebug(bool on)
+    public Task<bool> SetDebug(bool on)
     {
-        return await Send("debug " + (on ? "on" : "off"), null).ConfigureAwait(false);
+        return Send("debug " + (on ? "on" : "off"), null);
     }
 
     public async Task SetOption<T>(string name, T value)
@@ -155,7 +164,7 @@ internal class Engine : IDisposable
         }
         catch (Exception ex)
         {
-            Log($"Failed to start process: {ex.GetType().Name}: {ex.Message}");
+            Log(Utils.GetMessage(Messages.ProcessStartFailed), ex);
 
             return false;
         }
@@ -199,7 +208,7 @@ internal class Engine : IDisposable
         }
         catch (Exception ex)
         {
-            Log($"TryKill unexpected error: {ex.GetType().Name}: {ex.Message}");
+            Log(Utils.GetMessage(Messages.UnexpectedTryKill), ex);
         }
         finally
         {
@@ -209,7 +218,7 @@ internal class Engine : IDisposable
             }
             catch (Exception ex)
             {
-                Log($"Dispose failed: {ex.GetType().Name}: {ex.Message}");
+                Log(Utils.GetMessage(Messages.DisposeFail), ex);
             }
 
             _process = null;
@@ -228,12 +237,9 @@ internal class Engine : IDisposable
 
         lock (_waitLock)
         {
-            if (_waitTcs is not null)
+            if (string.IsNullOrEmpty(_waitFlag) || string.Equals(line, _waitFlag, StringComparison.OrdinalIgnoreCase))
             {
-                if (string.IsNullOrEmpty(_waitFlag) || string.Equals(line, _waitFlag, StringComparison.OrdinalIgnoreCase))
-                {
-                    _waitTcs.TrySetResult(line);
-                }
+                _waitTcs?.TrySetResult(line);
             }
         }
     }
@@ -298,16 +304,21 @@ internal class Engine : IDisposable
     {
         if (_process is null || _process.HasExited) return false;
 
+        Log(Utils.GetMessage(Messages.UCICommand, command));
+
         ReadReceivedLines();
+
+        TaskCompletionSource<string?>? localTcs;
+
+        lock (_waitLock)
+        {
+            _waitFlag = flag;
+            _waitTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            localTcs = _waitTcs;
+        }
 
         try
         {
-            lock (_waitLock)
-            {
-                _waitFlag = flag;
-                _waitTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
-
             _process.StandardInput.WriteLine(command);
             _process.StandardInput.Flush();
 
@@ -320,18 +331,21 @@ internal class Engine : IDisposable
 
             cts.CancelAfter(_engineSettings.Timeout);
 
-            Task completedTask = await Task.WhenAny(_waitTcs!.Task, Task.Delay(_engineSettings.Timeout, cts.Token)).ConfigureAwait(false);
+            Task completedTask = await Task.WhenAny(localTcs!.Task, Task.Delay(_engineSettings.Timeout, cts.Token)).ConfigureAwait(false);
 
-            if (completedTask == _waitTcs.Task)
+            if (completedTask == localTcs.Task)
             {
-                string? result = await _waitTcs.Task.ConfigureAwait(false);
+                string? result = await localTcs.Task.ConfigureAwait(false);
 
                 return result is not null;
             }
 
             lock (_waitLock)
             {
-                _waitTcs.TrySetResult(null);
+                if (ReferenceEquals(_waitTcs, localTcs))
+                {
+                    localTcs.TrySetResult(null);
+                }
             }
 
             return false;
@@ -340,10 +354,13 @@ internal class Engine : IDisposable
         {
             lock (_waitLock)
             {
-                _waitTcs?.TrySetResult(null);
+                if (ReferenceEquals(_waitTcs, localTcs))
+                {
+                    localTcs.TrySetResult(null);
+                }
             }
 
-            Log($"Utils.GetMessage(Messages.UCICommandCancel, command): {ex.GetType().Name}: {ex.Message}");
+            Log(Utils.GetMessage(Messages.UCICommandCancel, command), ex);
 
             throw;
         }
@@ -351,10 +368,13 @@ internal class Engine : IDisposable
         {
             lock (_waitLock)
             {
-                _waitTcs?.TrySetResult(null);
+                if (ReferenceEquals(_waitTcs, localTcs))
+                {
+                    localTcs.TrySetResult(null);
+                }
             }
 
-            Log($"Utils.GetMessage(Messages.UCICommandTimeout, command): {ex.GetType().Name}: {ex.Message}");
+            Log(Utils.GetMessage(Messages.UCICommandTimeout, command), ex);
 
             return false;
         }
@@ -362,10 +382,13 @@ internal class Engine : IDisposable
         {
             lock (_waitLock)
             {
-                _waitTcs?.TrySetResult(null);
+                if (ReferenceEquals(_waitTcs, localTcs))
+                {
+                    localTcs.TrySetResult(null);
+                }
             }
 
-            Log($"Utils.GetMessage(Messages.UCICommandFail, command): {ex.GetType().Name}: {ex.Message}");
+            Log(Utils.GetMessage(Messages.UCICommandFail, command), ex);
 
             return false;
         }
@@ -373,17 +396,20 @@ internal class Engine : IDisposable
         {
             lock (_waitLock)
             {
-                _waitFlag = null;
-                _waitTcs = null;
+                if (ReferenceEquals(_waitTcs, localTcs))
+                {
+                    _waitFlag = null;
+                    _waitTcs = null;
+                }
             }
         }
     }
 
-    private async Task QuitEngine()
+    private Task QuitEngine()
     {
-        if (_process is null || _process.HasExited) return;
+        if (_process is null || _process.HasExited) return Task.CompletedTask;
 
-        await Send("quit", null).ConfigureAwait(false);
+        return Send("quit", null);
     }
 
     private List<string> ReadReceivedLines()
@@ -398,15 +424,8 @@ internal class Engine : IDisposable
         return list;
     }
 
-    private void Log(string message)
+    private void Log(string message, Exception? ex = null, [CallerMemberName] string memberName = "", [CallerLineNumber] int lineNumber = 0)
     {
-        if (_logger is not null)
-        {
-            _logger.LogInformation("{Message}", message);
-        }
-        else
-        {
-            Console.WriteLine(message);
-        }
+        Utils.Log(_logger, message, ex, memberName, lineNumber);
     }
 }

@@ -1,19 +1,19 @@
 ﻿namespace Promote;
 
-public sealed class EngineSettings
+internal sealed class EngineSettings
 {
     public string Path { get; init; } = string.Empty;
     public int Timeout { get; init; } = 5000;
 }
 
-public sealed class UISettings
+internal sealed class BoardSettings
 {
     public string Theme { get; init; } = "light";
     public int FontSize { get; init; } = 12;
 }
 
-public sealed class Settings
+internal sealed class Settings
 {
     public EngineSettings Engine { get; init; } = new EngineSettings();
-    public UISettings UI { get; init; } = new UISettings();
+    public BoardSettings Board { get; init; } = new BoardSettings();
 }
