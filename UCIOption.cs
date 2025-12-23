@@ -1,4 +1,8 @@
-﻿namespace Promote;
+﻿using Microsoft.Extensions.Logging;
+
+using static Promote.Utils;
+
+namespace Promote;
 
 internal enum OptionType
 {
@@ -6,7 +10,8 @@ internal enum OptionType
     Spin,
     Combo,
     Button,
-    String
+    String,
+    Unknown = 9999
 }
 
 internal interface IUCIType { }
@@ -18,22 +23,28 @@ internal class UCIType<T> : IUCIType
     public T? Min { get; set; }
     public T? Default { get; set; }
 
-    public UCIType(string type)
+    public UCIType(string type, ILogger<UCIType<T>> logger)
     {
-        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
+        if (string.IsNullOrEmpty(type))
+        {
+            Log(logger, Messages.Options_EmptyType);
+            return;
+        }
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         if (tokens.Length == 0)
         {
-            throw new ArgumentException(Messages.EmptyType, nameof(type));
+            Log(logger, Messages.Options_EmptyType);
+            return;
         }
 
         for (int i = 1; i < tokens.Length; i += 2)
         {
             if (i + 1 >= tokens.Length)
             {
-                throw new ArgumentException(Messages.MalformedType, nameof(type));
+                Log(logger, Messages.Options_MalformedType);
+                break;
             }
 
             string prop = tokens[i].ToLowerInvariant();
@@ -69,8 +80,9 @@ internal class UCIType<T> : IUCIType
 
                 default:
                 {
-                    throw new ArgumentException(Utils.GetMessage(Messages.UnknownProperty, prop), nameof(type));
+                    Log(logger, GetMessage(Messages.Options_UnknownProperty, prop));
                 }
+                break;
             }
         }
 
@@ -87,22 +99,28 @@ internal class UCICombo : IUCIType
     public string? Value { get; set; }
     public string? Default { get; set; }
 
-    public UCICombo(string type)
+    public UCICombo(string type, ILogger<UCICombo> logger)
     {
-        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
+        if (string.IsNullOrEmpty(type))
+        {
+            Log(logger, Messages.Options_EmptyType);
+            return;
+        }
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         if (tokens.Length == 0)
         {
-            throw new ArgumentException(Messages.EmptyType, nameof(type));
+            Log(logger, Messages.Options_EmptyType);
+            return;
         }
 
         for (int i = 1; i < tokens.Length; i += 2)
         {
             if (i + 1 >= tokens.Length)
             {
-                throw new ArgumentException(Messages.MalformedType, nameof(type));
+                Log(logger, Messages.Options_MalformedType);
+                break;
             }
 
             string prop = tokens[i].ToLowerInvariant();
@@ -114,7 +132,7 @@ internal class UCICombo : IUCIType
             {
                 case "var":
                 {
-                    if (rawValue is not null)
+                    if (rawValue != null)
                     {
                         Options.Add(rawValue);
                     }
@@ -129,8 +147,9 @@ internal class UCICombo : IUCIType
 
                 default:
                 {
-                    throw new ArgumentException(Utils.GetMessage(Messages.UnknownProperty, prop), nameof(type));
+                    Log(logger, GetMessage(Messages.Options_UnknownProperty, prop));
                 }
+                break;
             }
         }
 
@@ -142,15 +161,20 @@ internal class UCIButton : IUCIType
 {
     public string? Label { get; }
 
-    public UCIButton(string type)
+    public UCIButton(string type, ILogger<UCIButton> logger)
     {
-        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
+        if (string.IsNullOrEmpty(type))
+        {
+            Log(logger, Messages.Options_EmptyType);
+            return;
+        }
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         if (tokens.Length == 0)
         {
-            throw new ArgumentException(Messages.EmptyType, nameof(type));
+            Log(logger, Messages.Options_EmptyType);
+            return;
         }
 
         if (tokens.Length >= 2)
@@ -160,72 +184,114 @@ internal class UCIButton : IUCIType
     }
 }
 
+internal class UCIUnknown : IUCIType
+{
+    public string ExpectedType { get; }
+    public string OriginalMessage { get; }
+
+    public UCIUnknown(string expectedType, string originalMessage, ILogger<UCIUnknown> logger)
+    {
+        ExpectedType = expectedType;
+        OriginalMessage = originalMessage;
+
+        Log(logger, originalMessage);
+    }
+}
+
 internal class UCIOption
 {
-    public string Name { get; }
+    public string? Name { get; }
     public OptionType Type { get; }
     public IUCIType UCIType { get; }
 
-    public UCIOption(string name, string type)
+    public UCIOption(string name, string type, ILogger<UCIOption> logger, ILoggerFactory loggerFactory)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-        ArgumentException.ThrowIfNullOrEmpty(type, nameof(type));
+        ILogger<UCIUnknown> uciUnknownLogger = loggerFactory.CreateLogger<UCIUnknown>();
+
+        if (string.IsNullOrEmpty(name))
+        {
+            UCIType = new UCIUnknown(type, Messages.Options_EmptyName, uciUnknownLogger);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(type))
+        {
+            UCIType = new UCIUnknown(type, Messages.Options_EmptyType, uciUnknownLogger);
+            return;
+        }
 
         string[] tokens = type.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         if (tokens.Length == 0)
         {
-            throw new ArgumentException(Messages.EmptyType, nameof(type));
+            UCIType = new UCIUnknown(type, Messages.Options_EmptyType, uciUnknownLogger);
+            return;
         }
 
         string optionType = tokens[0];
 
-        ArgumentException.ThrowIfNullOrEmpty(optionType, nameof(optionType));
+        if(string.IsNullOrEmpty(optionType))
+        {
+            UCIType = new UCIUnknown(type, Messages.Options_EmptyType, uciUnknownLogger);
+            return;
+        }
 
         if (!Enum.TryParse(optionType, true, out OptionType parsed))
         {
-            throw new ArgumentException(Utils.GetMessage(Messages.InvalidOptionType, optionType), nameof(type));
+            UCIType = new UCIUnknown(type, Messages.Options_InvalidOptionType, uciUnknownLogger);
+            return;
         }
 
         Name = name;
         Type = parsed;
 
-        switch (optionType.ToLowerInvariant())
+        switch (parsed)
         {
-            case "spin":
+            case OptionType.Spin:
             {
-                UCIType = new UCIType<int>(type);
+                ILogger<UCIType<int>> uciTypeIntLogger = loggerFactory.CreateLogger<UCIType<int>>();
+
+                UCIType = new UCIType<int>(type, uciTypeIntLogger);
             }
             break;
 
-            case "check":
+            case OptionType.Check:
             {
-                UCIType = new UCIType<bool>(type);
+                ILogger<UCIType<bool>> uciTypeBoolLogger = loggerFactory.CreateLogger<UCIType<bool>>();
+
+                UCIType = new UCIType<bool>(type, uciTypeBoolLogger);
             }
             break;
 
-            case "combo":
+            case OptionType.Combo:
             {
-                UCIType = new UCICombo(type);
+                ILogger<UCICombo> uciComboLogger = loggerFactory.CreateLogger<UCICombo>();
+
+                UCIType = new UCICombo(type, uciComboLogger);
             }
             break;
 
-            case "button":
+            case OptionType.Button:
             {
-                UCIType = new UCIButton(type);
+                ILogger<UCIButton> uciButtonLogger = loggerFactory.CreateLogger<UCIButton>();
+
+                UCIType = new UCIButton(type, uciButtonLogger);
             }
             break;
 
-            case "string":
+            case OptionType.String:
             {
-                UCIType = new UCIType<string>(type);
+                ILogger<UCIType<string>> uciTypeStringLogger = loggerFactory.CreateLogger<UCIType<string>>();
+
+                UCIType = new UCIType<string>(type, uciTypeStringLogger);
             }
             break;
 
             default:
             {
-                throw new ArgumentException(Utils.GetMessage(Messages.UnsupportedOptionType, optionType), nameof(type));
+                UCIType = new UCIUnknown(type, Messages.Options_UnsupportedOptionType, uciUnknownLogger);
             }
+            break;
         }
     }
 }

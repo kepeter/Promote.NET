@@ -1,12 +1,14 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using static Promote.Utils;
+
 namespace Promote;
+
+internal record BestMoveResult(string Move, string? Ponder, int? ScoreCp, int? ScoreMate);
 
 internal class Engine : IDisposable
 {
@@ -15,32 +17,48 @@ internal class Engine : IDisposable
     public List<UCIOption> EngineOptions { get; private set; } = new List<UCIOption>();
 
     private readonly EngineSettings _engineSettings;
-    private readonly ILogger<Engine>? _logger;
+    private readonly ILogger<Engine> _logger;
+    private readonly ILoggerFactory _loggerFactory;
 
     private ProcessStartInfo? _processInfo;
     private Process? _process;
 
     private readonly ConcurrentQueue<string> _receiveQueue = new ConcurrentQueue<string>();
 
+    private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
     private readonly object _waitLock = new object();
     private TaskCompletionSource<string?>? _waitTcs;
     private string? _waitFlag;
 
-    public Engine(IOptions<Settings>? options = null, ILogger<Engine>? logger = null)
+    public Engine(IOptions<Settings> options, ILogger<Engine> logger, ILoggerFactory loggerFactory)
     {
         _engineSettings = options?.Value.Engine ?? new EngineSettings();
 
         _logger = logger;
+        _loggerFactory = loggerFactory;
     }
 
     public void Dispose()
     {
+        lock (_waitLock)
+        {
+            _waitTcs?.TrySetResult(null);
+            _waitTcs = null;
+            _waitFlag = null;
+        }
+
+        _sendLock.Dispose();
+
         StopProcess();
     }
 
     public async Task<bool> Start(CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(_engineSettings.Path, nameof(_engineSettings.Path));
+        if (string.IsNullOrEmpty(_engineSettings.Path) || !File.Exists(_engineSettings.Path))
+        {
+            Log(_logger, Messages.Engine_NoExecutable);
+            return false;
+        }
 
         bool started = false;
 
@@ -58,7 +76,7 @@ internal class Engine : IDisposable
                 }
                 else
                 {
-                    Log(Utils.GetMessage(Messages.UCIStarted, EngineName, EngineAuthor));
+                    Log(_logger, GetMessage(Messages.Engine_UCIStarted, EngineName, EngineAuthor));
 
                     await NewGame();
                 }
@@ -74,7 +92,7 @@ internal class Engine : IDisposable
 
         await QuitEngine().ConfigureAwait(false);
 
-        Log(Utils.GetMessage(Messages.UCIStopped, EngineName, EngineAuthor));
+        Log(_logger, GetMessage(Messages.Engine_UCIStopped, EngineName, EngineAuthor));
 
         StopProcess();
     }
@@ -111,9 +129,19 @@ internal class Engine : IDisposable
 
         UCIType<T>? uciType = uciOption.UCIType as UCIType<T>;
 
-        if (uciType is not null)
+        if (uciType is UCIUnknown)
+        {
+            return;
+        }
+        else if (uciType != null)
         {
             uciType.Value = value;
+        }
+        else
+        {
+            string actualType = uciOption.UCIType?.GetType().Name ?? "null";
+            Log(_logger, GetMessage(Messages.Engine_OptionTypeMissmatch, name, typeof(T).Name, actualType));
+            return;
         }
 
         switch (uciOption.Type)
@@ -139,6 +167,102 @@ internal class Engine : IDisposable
         }
     }
 
+    public async Task<bool> Send(string command)
+    {
+        if (_process is null) return false;
+
+        return await Send(command, null);
+    }
+
+    public Task<bool> PositionFromFen(string fen)
+    {
+        if (string.IsNullOrEmpty(fen)) return Task.FromResult(false);
+
+        return Send($"position fen {fen}", null);
+    }
+
+    public Task<bool> PositionFromMoves(IEnumerable<string>? moves)
+    {
+        if (_process is null) return Task.FromResult(false);
+
+        if (moves is null)
+        {
+            return Send("position startpos", null);
+        }
+
+        string[] movesArr = moves.Where(m => !string.IsNullOrWhiteSpace(m)).Select(m => m.Trim()).ToArray();
+
+        if (movesArr.Length == 0)
+        {
+            return Send("position startpos", null);
+        }
+
+        string moveList = string.Join(' ', movesArr);
+
+        return Send($"position startpos moves {moveList}", null);
+    }
+
+    public async Task<BestMoveResult?> GetBestMove(CancellationToken cancellationToken = default)
+    {
+        if (_process is null || _process.HasExited) return null;
+
+        bool sent = await Send($"go movetime {_engineSettings.Timeout}", "bestmove", cancellationToken).ConfigureAwait(false);
+
+        if (!sent) return null;
+
+        List<string> lines = ReadReceivedLines();
+
+        string? bestLine = lines.FirstOrDefault(l => l.StartsWith("bestmove ", StringComparison.OrdinalIgnoreCase));
+
+        if (bestLine is null) return null;
+
+        string? move = null;
+        string? ponder = null;
+        int? scoreCp = null;
+        int? scoreMate = null;
+
+        string[] bestParts = bestLine.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+
+        if (bestParts.Length >= 2)
+        {
+            move = bestParts[1];
+
+            int pindex = Array.FindIndex(bestParts, p => string.Equals(p, "ponder", StringComparison.OrdinalIgnoreCase));
+            if (pindex >= 0 && pindex + 1 < bestParts.Length)
+            {
+                ponder = bestParts[pindex + 1];
+            }
+        }
+
+        foreach (string line in lines.Where(l => l.StartsWith("info ", StringComparison.OrdinalIgnoreCase)))
+        {
+            string[] parts = line.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (string.Equals(parts[i], "score", StringComparison.OrdinalIgnoreCase) && i + 2 < parts.Length)
+                {
+                    string kind = parts[i + 1];
+                    string value = parts[i + 2];
+
+                    if (string.Equals(kind, "cp", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (int.TryParse(value, out int cp)) scoreCp = cp;
+                        scoreMate = null;
+                    }
+                    else if (string.Equals(kind, "mate", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (int.TryParse(value, out int mate)) scoreMate = mate;
+                        scoreCp = null;
+                    }
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(move)) return null;
+
+        return new BestMoveResult(move, ponder, scoreCp, scoreMate);
+    }
+
     private bool StartProcess()
     {
         _processInfo = new ProcessStartInfo()
@@ -148,9 +272,7 @@ internal class Engine : IDisposable
             CreateNoWindow = true,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
+            RedirectStandardError = true
         };
 
         _process = new Process() { StartInfo = _processInfo, EnableRaisingEvents = true };
@@ -164,7 +286,7 @@ internal class Engine : IDisposable
         }
         catch (Exception ex)
         {
-            Log(Utils.GetMessage(Messages.ProcessStartFailed), ex);
+            Log(_logger, GetMessage(Messages.Engine_ProcessStartFailed), ex);
 
             return false;
         }
@@ -208,7 +330,7 @@ internal class Engine : IDisposable
         }
         catch (Exception ex)
         {
-            Log(Utils.GetMessage(Messages.UnexpectedTryKill), ex);
+            Log(_logger, GetMessage(Messages.Engine_UnexpectedTryKill), ex);
         }
         finally
         {
@@ -218,7 +340,7 @@ internal class Engine : IDisposable
             }
             catch (Exception ex)
             {
-                Log(Utils.GetMessage(Messages.DisposeFail), ex);
+                Log(_logger, GetMessage(Messages.Engine_DisposeFail), ex);
             }
 
             _process = null;
@@ -237,7 +359,9 @@ internal class Engine : IDisposable
 
         lock (_waitLock)
         {
-            if (string.IsNullOrEmpty(_waitFlag) || string.Equals(line, _waitFlag, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(_waitFlag) &&
+                (string.Equals(line, _waitFlag, StringComparison.OrdinalIgnoreCase) ||
+                 line.StartsWith(_waitFlag, StringComparison.OrdinalIgnoreCase)))
             {
                 _waitTcs?.TrySetResult(line);
             }
@@ -255,6 +379,7 @@ internal class Engine : IDisposable
     private async Task<bool> UCI(CancellationToken cancellationToken = default)
     {
         bool ok = await Send("uci", "uciok", cancellationToken).ConfigureAwait(false);
+        ILogger<UCIOption> uciLogger = _loggerFactory.CreateLogger<UCIOption>();
 
         if (!ok) return false;
 
@@ -286,7 +411,7 @@ internal class Engine : IDisposable
             if (index < 0)
             {
                 string namePart = opt.Length > 12 ? opt.Substring(12).Trim() : string.Empty;
-                EngineOptions.Add(new UCIOption(namePart, string.Empty));
+                EngineOptions.Add(new UCIOption(namePart, string.Empty, uciLogger, _loggerFactory));
 
                 continue;
             }
@@ -294,7 +419,7 @@ internal class Engine : IDisposable
             string namePartFixed = opt.Substring(12, index - 12).Trim();
             string typePart = opt.Substring(index + 6).Trim();
 
-            EngineOptions.Add(new UCIOption(namePartFixed, typePart));
+            EngineOptions.Add(new UCIOption(namePartFixed, typePart, uciLogger, _loggerFactory));
         }
 
         return true;
@@ -304,9 +429,19 @@ internal class Engine : IDisposable
     {
         if (_process is null || _process.HasExited) return false;
 
-        Log(Utils.GetMessage(Messages.UCICommand, command));
+        Log(_logger, GetMessage(Messages.Engine_UCICommand, command));
 
         ReadReceivedLines();
+
+        try
+        {
+            await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            Log(_logger, GetMessage(Messages.Engine_UCICommandCancel, command));
+            return false;
+        }
 
         TaskCompletionSource<string?>? localTcs;
 
@@ -327,17 +462,13 @@ internal class Engine : IDisposable
                 return true;
             }
 
-            using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            cts.CancelAfter(_engineSettings.Timeout);
-
-            Task completedTask = await Task.WhenAny(localTcs!.Task, Task.Delay(_engineSettings.Timeout, cts.Token)).ConfigureAwait(false);
+            Task completedTask = await Task.WhenAny(localTcs!.Task, Task.Delay(_engineSettings.Timeout, cancellationToken)).ConfigureAwait(false);
 
             if (completedTask == localTcs.Task)
             {
                 string? result = await localTcs.Task.ConfigureAwait(false);
 
-                return result is not null;
+                return result != null;
             }
 
             lock (_waitLock)
@@ -360,9 +491,9 @@ internal class Engine : IDisposable
                 }
             }
 
-            Log(Utils.GetMessage(Messages.UCICommandCancel, command), ex);
+            Log(_logger, GetMessage(Messages.Engine_UCICommandCancel, command), ex);
 
-            throw;
+            return false;
         }
         catch (TimeoutException ex)
         {
@@ -374,7 +505,7 @@ internal class Engine : IDisposable
                 }
             }
 
-            Log(Utils.GetMessage(Messages.UCICommandTimeout, command), ex);
+            Log(_logger, GetMessage(Messages.Engine_UCICommandTimeout, command), ex);
 
             return false;
         }
@@ -388,7 +519,7 @@ internal class Engine : IDisposable
                 }
             }
 
-            Log(Utils.GetMessage(Messages.UCICommandFail, command), ex);
+            Log(_logger, GetMessage(Messages.Engine_UCICommandFail, command), ex);
 
             return false;
         }
@@ -402,6 +533,8 @@ internal class Engine : IDisposable
                     _waitTcs = null;
                 }
             }
+
+            _sendLock.Release();
         }
     }
 
@@ -422,10 +555,5 @@ internal class Engine : IDisposable
         }
 
         return list;
-    }
-
-    private void Log(string message, Exception? ex = null, [CallerMemberName] string memberName = "", [CallerLineNumber] int lineNumber = 0)
-    {
-        Utils.Log(_logger, message, ex, memberName, lineNumber);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 using Microsoft.Extensions.Logging;
 
@@ -19,24 +20,58 @@ internal static class Utils
         }
     }
 
-    public static void Log(ILogger? logger, string message, Exception? ex = null, [CallerMemberName] string memberName = "", [CallerLineNumber] int lineNumber = 0)
+    public static void Log<T>(ILogger<T>? logger, string message, Exception? ex = null, [CallerMemberName] string memberName = "", [CallerLineNumber] int lineNumber = 0)
     {
-        string template = "{Message} (at {Member}:{Line})";
+        string typeName = typeof(T).FullName ?? "<unknown>";
+        string template = "{Message} (at {Type}.{Member}:{Line})";
 
-        if (logger is not null)
+        if (logger != null)
         {
-            if (ex is not null)
+            if (ex != null)
             {
-                logger.LogError(ex, template, message, memberName, lineNumber);
+                logger.LogError(ex, template, message, typeName, memberName, lineNumber);
             }
             else
             {
-                logger.LogInformation(template, message, memberName, lineNumber);
+                logger.LogInformation(template, message, typeName, memberName, lineNumber);
             }
         }
         else
         {
-            Console.WriteLine("{0} (at {1}:{2})", message, memberName, lineNumber);
+            if (ex != null)
+            {
+                Console.WriteLine(FormatException(ex));
+            }
+
+            Console.WriteLine("{0} (at {1}.{2}:{3})", message, typeName, memberName, lineNumber);
         }
+    }
+
+    private static string FormatException(Exception ex)
+    {
+        var sb = new StringBuilder();
+        int level = 0;
+        Exception? current = ex;
+
+        while (current != null)
+        {
+            sb.AppendLine($"Exception[{level}]: {current.GetType().FullName}: {current.Message}");
+
+            if (!string.IsNullOrEmpty(current.StackTrace))
+            {
+                sb.AppendLine(current.StackTrace);
+            }
+
+            current = current.InnerException;
+
+            if (current != null)
+            {
+                sb.AppendLine("--- Inner Exception ---");
+            }
+
+            level++;
+        }
+
+        return sb.ToString();
     }
 }

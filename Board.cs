@@ -1,7 +1,9 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Linq;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+
+using static Promote.Utils;
 
 namespace Promote;
 
@@ -71,7 +73,6 @@ internal class Board
     private readonly Stack<Move> moveHistory = new Stack<Move>();
     private readonly Stack<GameSnapshot> snapshotHistory = new Stack<GameSnapshot>();
 
-    private readonly BoardSettings _boardSettings;
     private readonly ILogger<Board>? _logger;
 
     private Func<string, string, Piece>? promotionCallback;
@@ -79,13 +80,11 @@ internal class Board
     private static bool IsWhite(Piece p) => char.IsUpper((char)p);
     private static bool IsBlack(Piece p) => char.IsLower((char)p);
 
-    public Board(IOptions<Settings>? options = null, ILogger<Board>? logger = null)
+    public Board(string? fen = null, ILogger<Board>? logger = null)
     {
-        _boardSettings = options?.Value.Board ?? new BoardSettings();
-
         _logger = logger;
 
-        FromFen(startingFen);
+        FromFen(fen ?? startingFen);
     }
 
     public string ToFen()
@@ -153,7 +152,7 @@ internal class Board
     {
         if (string.IsNullOrEmpty(fen))
         {
-            Log(Messages.Board_InvalidFEN_Empty);
+            Log(_logger, Messages.Board_InvalidFEN_Empty);
             return;
         }
 
@@ -161,7 +160,7 @@ internal class Board
 
         if (parts.Length != 6)
         {
-            Log(Messages.Board_InvalidFEN_PartsCount);
+            Log(_logger, Messages.Board_InvalidFEN_PartsCount);
             return;
         }
 
@@ -169,7 +168,7 @@ internal class Board
 
         if (rows.Length != 8)
         {
-            Log(Messages.Board_InvalidFEN_RowsCount);
+            Log(_logger, Messages.Board_InvalidFEN_RowsCount);
             return;
         }
 
@@ -188,7 +187,7 @@ internal class Board
                     {
                         if (col >= 8)
                         {
-                            Log(Utils.GetMessage(Messages.Board_InvalidFEN_RowOverflow, i));
+                            Log(_logger, GetMessage(Messages.Board_InvalidFEN_RowOverflow, i));
                             return;
                         }
 
@@ -200,13 +199,13 @@ internal class Board
                 {
                     if (!TryParsePiece(c, out Piece p))
                     {
-                        Log(Utils.GetMessage(Messages.Board_InvalidFEN_InvalidPiece, (char)p, c, i));
+                        Log(_logger, GetMessage(Messages.Board_InvalidFEN_InvalidPiece, (char)p, c, i));
                         return;
                     }
 
                     if (col >= 8)
                     {
-                        Log(Utils.GetMessage(Messages.Board_InvalidFEN_RowOverflow, i));
+                        Log(_logger, GetMessage(Messages.Board_InvalidFEN_RowOverflow, i));
                         return;
                     }
 
@@ -217,9 +216,33 @@ internal class Board
 
             if (col != 8)
             {
-                Log(Utils.GetMessage(Messages.Board_InvalidFEN_InvalidRowSquares, i, col));
+                Log(_logger, GetMessage(Messages.Board_InvalidFEN_InvalidRowSquares, i, col));
                 return;
             }
+        }
+
+        bool hasWhiteKing = false;
+        bool hasBlackKing = false;
+
+        for (int r = 0; r < 8; r++)
+        {
+            for (int c = 0; c < 8; c++)
+            {
+                if (newBoard[r, c] == Piece.WhiteKing) hasWhiteKing = true;
+                if (newBoard[r, c] == Piece.BlackKing) hasBlackKing = true;
+            }
+        }
+
+        if (!hasWhiteKing)
+        {
+            Log(_logger, GetMessage(Messages.Board_InvalidState_KingMissing, Messages.Board_Color_White));
+            return;
+        }
+
+        if (!hasBlackKing)
+        {
+            Log(_logger, GetMessage(Messages.Board_InvalidState_KingMissing, Messages.Board_Color_Black));
+            return;
         }
 
         bool newWhiteTurn = parts[1] == "w";
@@ -243,7 +266,7 @@ internal class Board
 
             if (ep.Length != 2 || ep[0] < 'a' || ep[0] > 'h' || ep[1] < '1' || ep[1] > '8')
             {
-                Log(Utils.GetMessage(Messages.Board_InvalidFEN_InvalidEP, ep));
+                Log(_logger, GetMessage(Messages.Board_InvalidFEN_InvalidEP, ep));
                 return;
             }
 
@@ -252,13 +275,13 @@ internal class Board
 
         if (!int.TryParse(parts[4], out int newHalfMove))
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidFEN_InvalidHalfMove, parts[4]));
+            Log(_logger, GetMessage(Messages.Board_InvalidFEN_InvalidHalfMove, parts[4]));
             return;
         }
 
         if (!int.TryParse(parts[5], out int newFullMove))
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidFEN_InvalidFullMove, parts[5]));
+            Log(_logger, GetMessage(Messages.Board_InvalidFEN_InvalidFullMove, parts[5]));
             return;
         }
 
@@ -282,7 +305,7 @@ internal class Board
     {
         if (string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to))
         {
-            Log(Messages.Board_InvalidMove_NullSquare);
+            Log(_logger, Messages.Board_InvalidMove_NullSquare);
             return false;
         }
 
@@ -291,7 +314,7 @@ internal class Board
 
         if (from == to)
         {
-            Log(Messages.Board_InvalidMove_SameSquare);
+            Log(_logger, Messages.Board_InvalidMove_SameSquare);
             return false;
         }
 
@@ -300,13 +323,13 @@ internal class Board
 
         if (fromPos == -1)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove_InvalidPosition, from));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove_InvalidPosition, from));
             return false;
         }
 
         if (toPos == -1)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove_InvalidPosition, to));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove_InvalidPosition, to));
             return false;
         }
 
@@ -321,7 +344,7 @@ internal class Board
 
         if (piece == Piece.None)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove_EmptyPosition, from));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove_EmptyPosition, from));
             return false;
         }
 
@@ -329,7 +352,7 @@ internal class Board
 
         if (isWhite != whiteTurn)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove_InvalidPiece, from));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove_InvalidPiece, from));
             return false;
         }
 
@@ -429,7 +452,7 @@ internal class Board
         {
             RestoreBackup(boardBackup, castlingBackup, enPassantBackup, halfMoveBackup, fullMoveBackup, whiteTurnBackup);
 
-            Log(Utils.GetMessage(Messages.Board_InvalidState_KingMissing, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black));
+            Log(_logger, GetMessage(Messages.Board_InvalidState_KingMissing, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black));
             return false;
         }
 
@@ -440,16 +463,44 @@ internal class Board
         {
             RestoreBackup(boardBackup, castlingBackup, enPassantBackup, halfMoveBackup, fullMoveBackup, whiteTurnBackup);
 
-            Log(Utils.GetMessage(Messages.Board_InvalidMove_KingUnderAttack, from, to));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove_KingUnderAttack, from, to));
             return false;
         }
 
         if (pawnMove && Math.Abs(toRow - fromRow) == 2)
         {
-            int dir = isWhite ? -1 : 1;
-            int passedRow = fromRow + dir;
+            bool opponentPawnAdjacent = false;
+            int leftCol = toCol - 1;
+            int rightCol = toCol + 1;
 
-            enPassantSquare = passedRow * 8 + fromCol;
+            if (leftCol >= 0)
+            {
+                var p = board[toRow, leftCol];
+                if (p == Piece.WhitePawn || p == Piece.BlackPawn)
+                {
+                    if (IsWhite(p) != isWhite) opponentPawnAdjacent = true;
+                }
+            }
+
+            if (!opponentPawnAdjacent && rightCol <= 7)
+            {
+                var p = board[toRow, rightCol];
+                if (p == Piece.WhitePawn || p == Piece.BlackPawn)
+                {
+                    if (IsWhite(p) != isWhite) opponentPawnAdjacent = true;
+                }
+            }
+
+            if (opponentPawnAdjacent)
+            {
+                int dir = isWhite ? -1 : 1;
+                int passedRow = fromRow + dir;
+                enPassantSquare = passedRow * 8 + fromCol;
+            }
+            else
+            {
+                enPassantSquare = -1;
+            }
         }
         else
         {
@@ -527,6 +578,19 @@ internal class Board
         return lastMove;
     }
 
+    public char this[int rank, int file]
+    {
+        get
+        {
+            if (rank < 0 || rank > 7 || file < 0 || file > 7)
+            {
+                return ' ';
+            }
+
+            return board[rank, file] == Piece.None ? ' ' : (char)board[rank, file];
+        }
+    }
+
     private bool IsValidMove(Piece piece, Piece targetPiece, int fromPos, int toPos)
     {
         int fromRow = fromPos / 8;
@@ -536,7 +600,7 @@ internal class Board
 
         if (SameColor(piece, targetPiece))
         {
-            Log(Messages.Board_InvalidMove_SameColor);
+            Log(_logger, Messages.Board_InvalidMove_SameColor);
             return false;
         }
 
@@ -581,7 +645,7 @@ internal class Board
             }
         }
 
-        Log(Messages.Board_InvalidState_UnknownPiece);
+        Log(_logger, Messages.Board_InvalidState_UnknownPiece);
         return false;
     }
 
@@ -615,7 +679,7 @@ internal class Board
             if (toPos == enPassantSquare) return true;
         }
 
-        Log(Utils.GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Pawn));
+        Log(_logger, GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Pawn));
         return false;
     }
 
@@ -627,7 +691,7 @@ internal class Board
 
         if (!valid)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Knight));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Knight));
         }
 
         return valid;
@@ -648,7 +712,7 @@ internal class Board
 
         if (!valid && log)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Bishop));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Bishop));
         }
 
         return valid;
@@ -669,7 +733,7 @@ internal class Board
 
         if (!valid && log)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Rook));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Rook));
         }
 
         return valid;
@@ -681,7 +745,7 @@ internal class Board
 
         if (!valid)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Queen));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_Queen));
         }
 
         return valid;
@@ -742,10 +806,14 @@ internal class Board
                 if (IsPositionUnderAttack(fromRow, 2, !isWhite)) valid = false;
             }
         }
+        else
+        {
+            valid = false;
+        }
 
         if (!valid)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_King));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove, isWhite ? Messages.Board_Color_White : Messages.Board_Color_Black, Messages.Board_Pieces_King));
         }
 
         return valid;
@@ -900,7 +968,7 @@ internal class Board
 
         if (!result)
         {
-            Log(Utils.GetMessage(Messages.Board_InvalidMove_PromotionPiece, Messages.Board_Pieces_Pawn));
+            Log(_logger, GetMessage(Messages.Board_InvalidMove_PromotionPiece, Messages.Board_Pieces_Pawn));
         }
 
         return result;
@@ -941,11 +1009,6 @@ internal class Board
         }
 
         return (position[0] - 'a') + (8 - (position[1] - '0')) * 8;
-    }
-
-    private void Log(string message, Exception? ex = null, [CallerMemberName] string memberName = "", [CallerLineNumber] int lineNumber = 0)
-    {
-        Utils.Log(_logger, message, ex, memberName, lineNumber);
     }
 
     private bool IsPseudoLegalMove(Piece piece, Piece targetPiece, int fromPos, int toPos)
@@ -1197,5 +1260,40 @@ internal class Board
         }
 
         return isWhite ? Piece.WhiteQueen : Piece.BlackQueen;
+    }
+
+    // New: produce the moves in UCI form (chronological), e.g. ["e2e4","e7e5","g1f3","b8c6","f1b5"]
+    public string[] GetUciMoves()
+    {
+        if (moveHistory.Count == 0) return Array.Empty<string>();
+
+        // Stack<T>.ToArray returns LIFO (most recent first) so reverse to chronological order
+        Move[] arr = moveHistory.ToArray();
+        Array.Reverse(arr);
+
+        var result = new List<string>(arr.Length);
+
+        foreach (var m in arr)
+        {
+            string mv = ToAlgebraic(m.From) + ToAlgebraic(m.To);
+
+            if (m.Promotion && m.PromotedTo != Piece.None)
+            {
+                char promo = m.PromotedTo switch
+                {
+                    Piece.WhiteQueen or Piece.BlackQueen => 'q',
+                    Piece.WhiteRook or Piece.BlackRook => 'r',
+                    Piece.WhiteBishop or Piece.BlackBishop => 'b',
+                    Piece.WhiteKnight or Piece.BlackKnight => 'n',
+                    _ => 'q'
+                };
+
+                mv += promo;
+            }
+
+            result.Add(mv);
+        }
+
+        return result.ToArray();
     }
 }

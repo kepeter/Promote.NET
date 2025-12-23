@@ -8,7 +8,15 @@ internal sealed class EngineSettings
 
 internal sealed class BoardSettings
 {
-    public string Theme { get; init; } = "light";
+    public int CellWidth { get; init; } = 7;
+    public int CellHeight { get; init; } = 3;
+
+    public ConsoleColor LightSquare { get; init; } = ConsoleColor.White;
+    public ConsoleColor DarkSquare { get; init; } = ConsoleColor.Black;
+
+    public ConsoleColor WhitePiece { get; init; } = ConsoleColor.Green;
+    public ConsoleColor BlackPiece { get; init; } = ConsoleColor.Blue;
+
     public int FontSize { get; init; } = 12;
 }
 

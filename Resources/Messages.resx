@@ -117,50 +117,29 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="InvalidOptionType" xml:space="preserve">
-    <value>Invalid option type '{0}' for enum mapping.</value>
-  </data>
-  <data name="EmptyType" xml:space="preserve">
-    <value>Type string is empty.</value>
-  </data>
-  <data name="UnsupportedOptionType" xml:space="preserve">
-    <value>Unsupported option type '{0}'.</value>
-  </data>
-  <data name="UnknownProperty" xml:space="preserve">
-    <value>Unknown property '{0}' in type string.</value>
-  </data>
-  <data name="MalformedType" xml:space="preserve">
-    <value>Malformed type string: property without value.</value>
-  </data>
-  <data name="UCICommandFail" xml:space="preserve">
-    <value>UCI command '{0}' failed.</value>
-  </data>
-  <data name="UCICommandCancel" xml:space="preserve">
+  <data name="Engine_UCICommandCancel" xml:space="preserve">
     <value>UCI command '{0}' canceled.</value>
   </data>
-  <data name="UCICommandTimeout" xml:space="preserve">
-    <value>UCI command '{0}' timed out.</value>
-  </data>
-  <data name="ProcessStartFailed" xml:space="preserve">
+  <data name="Engine_ProcessStartFailed" xml:space="preserve">
     <value>Failed to start process.</value>
   </data>
-  <data name="UnexpectedTryKill" xml:space="preserve">
+  <data name="Engine_UnexpectedTryKill" xml:space="preserve">
     <value>Unexpected error while try killing process.</value>
   </data>
-  <data name="DisposeFail" xml:space="preserve">
+  <data name="Engine_DisposeFail" xml:space="preserve">
     <value>Dispose failed.</value>
   </data>
-  <data name="UCICommand" xml:space="preserve">
+  <data name="Engine_UCICommand" xml:space="preserve">
     <value>Executing UCI command '{0}'.</value>
   </data>
-  <data name="UCIStarted" xml:space="preserve">
+  <data name="Engine_UCIStarted" xml:space="preserve">
     <value>UCI engine {0} by {1} started.</value>
   </data>
-  <data name="UCIStopped" xml:space="preserve">
+  <data name="Engine_UCIStopped" xml:space="preserve">
     <value>UCI engine {0} by {1} stopped.</value>
   </data>
   <data name="Board_InvalidMove_InvalidPosition" xml:space="preserve">
-    <value>Invalid move: invalid algebraic position ('{0}').</value>
+    <value>Invalid move: invalid algebraic position - {0}.</value>
   </data>
   <data name="Board_InvalidFEN_Empty" xml:space="preserve">
     <value>Invalid FEN: input is empty or null.</value>
@@ -169,25 +148,25 @@
     <value>Invalid FEN: expected 6 space-separated fields (piece, active color, castling, en-passant, halfmove, fullmove).</value>
   </data>
   <data name="Board_InvalidFEN_RowsCount" xml:space="preserve">
-    <value>Invalid FEN: expected 8 rows in the piece-placement field.</value>
+    <value>Invalid FEN: expected 8 ranks in the piece-placement field.</value>
   </data>
   <data name="Board_InvalidFEN_InvalidPiece" xml:space="preserve">
-    <value>Invalid FEN: invalid piece '{0}' at {1} in row {2}.</value>
+    <value>Invalid FEN: invalid piece '{0}' at file {1} in rank {2}.</value>
   </data>
   <data name="Board_InvalidFEN_InvalidRowSquares" xml:space="preserve">
-    <value>Invalid FEN: row {0} contains {1} squares (must be 8).</value>
+    <value>Invalid FEN: rank {0} contains {1} files (must be 8).</value>
   </data>
   <data name="Board_InvalidFEN_InvalidEP" xml:space="preserve">
-    <value>Invalid FEN: invalid en-passant square {0}.</value>
+    <value>Invalid FEN: invalid en-passant square - {0}.</value>
   </data>
   <data name="Board_InvalidFEN_RowOverflow" xml:space="preserve">
-    <value>Invalid FEN: row {0} contains too many squares.</value>
+    <value>Invalid FEN: rank {0} contains too many files.</value>
   </data>
   <data name="Board_InvalidFEN_InvalidHalfMove" xml:space="preserve">
-    <value>Invalid FEN: halfmove clock is not a valid integer ({0}).</value>
+    <value>Invalid FEN: halfmove clock is not a valid integer - {0}.</value>
   </data>
   <data name="Board_InvalidFEN_InvalidFullMove" xml:space="preserve">
-    <value>Invalid FEN: fullmove number is not a valid integer ({0}).</value>
+    <value>Invalid FEN: fullmove number is not a valid integer - {0}.</value>
   </data>
   <data name="Board_InvalidMove_SameSquare" xml:space="preserve">
     <value>Invalid move: same square.</value>
@@ -196,16 +175,16 @@
     <value>Invalid move: origin or target square (or both) is null or empty.</value>
   </data>
   <data name="Board_InvalidMove_EmptyPosition" xml:space="preserve">
-    <value>Invalid move: empty origin ('{0}').</value>
+    <value>Invalid move: empty origin - {0}.</value>
   </data>
   <data name="Board_InvalidMove_InvalidPiece" xml:space="preserve">
-    <value>Invalid move: piece to move is the wrong color ({0}).</value>
+    <value>Invalid move: piece to move is the wrong color - {0}.</value>
   </data>
   <data name="Board_InvalidState_KingMissing" xml:space="preserve">
     <value>Invalid state: {0} king is missing from board.</value>
   </data>
   <data name="Board_InvalidMove_KingUnderAttack" xml:space="preserve">
-    <value>Invalid move: move ('{0}'-'{1}') exposes king to check.</value>
+    <value>Invalid move: move {0}-{1} exposes king to check.</value>
   </data>
   <data name="Board_InvalidMove_SameColor" xml:space="preserve">
     <value>Invalid move: origin and target are occupied by same color pieces.</value>
@@ -242,5 +221,35 @@
   </data>
   <data name="Board_InvalidMove_PromotionPiece" xml:space="preserve">
     <value>Invalid move: {0} is invalid for promotion.</value>
+  </data>
+  <data name="Engine_NoExecutable" xml:space="preserve">
+    <value>Engine executable path is empty or file not found.</value>
+  </data>
+  <data name="Options_UnsupportedOptionType" xml:space="preserve">
+    <value>Unsupported option type '{0}'.</value>
+  </data>
+  <data name="Options_MalformedType" xml:space="preserve">
+    <value>Malformed type string: property without value.</value>
+  </data>
+  <data name="Options_UnknownProperty" xml:space="preserve">
+    <value>Unknown property '{0}' in type string.</value>
+  </data>
+  <data name="Options_InvalidOptionType" xml:space="preserve">
+    <value>Invalid option type '{0}' for enum mapping.</value>
+  </data>
+  <data name="Options_EmptyType" xml:space="preserve">
+    <value>Option type is empty.</value>
+  </data>
+  <data name="Engine_UCICommandTimeout" xml:space="preserve">
+    <value>UCI command '{0}' timed out.</value>
+  </data>
+  <data name="Engine_UCICommandFail" xml:space="preserve">
+    <value>UCI command '{0}' failed.</value>
+  </data>
+  <data name="Options_EmptyName" xml:space="preserve">
+    <value>Option name is empty</value>
+  </data>
+  <data name="Engine_OptionTypeMissmatch" xml:space="preserve">
+    <value>Option '{0}' expected to be of type '{1}' but the actual type is '{2}'.</value>
   </data>
 </root>

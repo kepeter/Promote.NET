@@ -88,7 +88,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid FEN: invalid en-passant square {0}..
+        ///   Looks up a localized string similar to Invalid FEN: invalid en-passant square - {0}..
         /// </summary>
         internal static string Board_InvalidFEN_InvalidEP {
             get {
@@ -97,7 +97,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid FEN: fullmove number is not a valid integer ({0})..
+        ///   Looks up a localized string similar to Invalid FEN: fullmove number is not a valid integer - {0}..
         /// </summary>
         internal static string Board_InvalidFEN_InvalidFullMove {
             get {
@@ -106,7 +106,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid FEN: halfmove clock is not a valid integer ({0})..
+        ///   Looks up a localized string similar to Invalid FEN: halfmove clock is not a valid integer - {0}..
         /// </summary>
         internal static string Board_InvalidFEN_InvalidHalfMove {
             get {
@@ -115,7 +115,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid FEN: invalid piece &apos;{0}&apos; at {1} in row {2}..
+        ///   Looks up a localized string similar to Invalid FEN: invalid piece &apos;{0}&apos; at file {1} in rank {2}..
         /// </summary>
         internal static string Board_InvalidFEN_InvalidPiece {
             get {
@@ -124,7 +124,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid FEN: row {0} contains {1} squares (must be 8)..
+        ///   Looks up a localized string similar to Invalid FEN: rank {0} contains {1} files (must be 8)..
         /// </summary>
         internal static string Board_InvalidFEN_InvalidRowSquares {
             get {
@@ -142,7 +142,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid FEN: row {0} contains too many squares..
+        ///   Looks up a localized string similar to Invalid FEN: rank {0} contains too many files..
         /// </summary>
         internal static string Board_InvalidFEN_RowOverflow {
             get {
@@ -151,7 +151,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid FEN: expected 8 rows in the piece-placement field..
+        ///   Looks up a localized string similar to Invalid FEN: expected 8 ranks in the piece-placement field..
         /// </summary>
         internal static string Board_InvalidFEN_RowsCount {
             get {
@@ -169,7 +169,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid move: empty origin (&apos;{0}&apos;)..
+        ///   Looks up a localized string similar to Invalid move: empty origin - {0}..
         /// </summary>
         internal static string Board_InvalidMove_EmptyPosition {
             get {
@@ -178,7 +178,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid move: piece to move is the wrong color ({0})..
+        ///   Looks up a localized string similar to Invalid move: piece to move is the wrong color - {0}..
         /// </summary>
         internal static string Board_InvalidMove_InvalidPiece {
             get {
@@ -187,7 +187,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid move: invalid algebraic position (&apos;{0}&apos;)..
+        ///   Looks up a localized string similar to Invalid move: invalid algebraic position - {0}..
         /// </summary>
         internal static string Board_InvalidMove_InvalidPosition {
             get {
@@ -196,7 +196,7 @@ namespace Promote {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid move: move (&apos;{0}&apos;-&apos;{1}&apos;) exposes king to check..
+        ///   Looks up a localized string similar to Invalid move: move {0}-{1} exposes king to check..
         /// </summary>
         internal static string Board_InvalidMove_KingUnderAttack {
             get {
@@ -315,126 +315,153 @@ namespace Promote {
         /// <summary>
         ///   Looks up a localized string similar to Dispose failed..
         /// </summary>
-        internal static string DisposeFail {
+        internal static string Engine_DisposeFail {
             get {
-                return ResourceManager.GetString("DisposeFail", resourceCulture);
+                return ResourceManager.GetString("Engine_DisposeFail", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Type string is empty..
+        ///   Looks up a localized string similar to Engine executable path is empty or file not found..
         /// </summary>
-        internal static string EmptyType {
+        internal static string Engine_NoExecutable {
             get {
-                return ResourceManager.GetString("EmptyType", resourceCulture);
+                return ResourceManager.GetString("Engine_NoExecutable", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid option type &apos;{0}&apos; for enum mapping..
+        ///   Looks up a localized string similar to Option &apos;{0}&apos; expected to be of type &apos;{1}&apos; but the actual type is &apos;{2}&apos;..
         /// </summary>
-        internal static string InvalidOptionType {
+        internal static string Engine_OptionTypeMissmatch {
             get {
-                return ResourceManager.GetString("InvalidOptionType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Malformed type string: property without value..
-        /// </summary>
-        internal static string MalformedType {
-            get {
-                return ResourceManager.GetString("MalformedType", resourceCulture);
+                return ResourceManager.GetString("Engine_OptionTypeMissmatch", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Failed to start process..
         /// </summary>
-        internal static string ProcessStartFailed {
+        internal static string Engine_ProcessStartFailed {
             get {
-                return ResourceManager.GetString("ProcessStartFailed", resourceCulture);
+                return ResourceManager.GetString("Engine_ProcessStartFailed", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Executing UCI command &apos;{0}&apos;..
         /// </summary>
-        internal static string UCICommand {
+        internal static string Engine_UCICommand {
             get {
-                return ResourceManager.GetString("UCICommand", resourceCulture);
+                return ResourceManager.GetString("Engine_UCICommand", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to UCI command &apos;{0}&apos; canceled..
         /// </summary>
-        internal static string UCICommandCancel {
+        internal static string Engine_UCICommandCancel {
             get {
-                return ResourceManager.GetString("UCICommandCancel", resourceCulture);
+                return ResourceManager.GetString("Engine_UCICommandCancel", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to UCI command &apos;{0}&apos; failed..
         /// </summary>
-        internal static string UCICommandFail {
+        internal static string Engine_UCICommandFail {
             get {
-                return ResourceManager.GetString("UCICommandFail", resourceCulture);
+                return ResourceManager.GetString("Engine_UCICommandFail", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to UCI command &apos;{0}&apos; timed out..
         /// </summary>
-        internal static string UCICommandTimeout {
+        internal static string Engine_UCICommandTimeout {
             get {
-                return ResourceManager.GetString("UCICommandTimeout", resourceCulture);
+                return ResourceManager.GetString("Engine_UCICommandTimeout", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to UCI engine {0} by {1} started..
         /// </summary>
-        internal static string UCIStarted {
+        internal static string Engine_UCIStarted {
             get {
-                return ResourceManager.GetString("UCIStarted", resourceCulture);
+                return ResourceManager.GetString("Engine_UCIStarted", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to UCI engine {0} by {1} stopped..
         /// </summary>
-        internal static string UCIStopped {
+        internal static string Engine_UCIStopped {
             get {
-                return ResourceManager.GetString("UCIStopped", resourceCulture);
+                return ResourceManager.GetString("Engine_UCIStopped", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Unexpected error while try killing process..
         /// </summary>
-        internal static string UnexpectedTryKill {
+        internal static string Engine_UnexpectedTryKill {
             get {
-                return ResourceManager.GetString("UnexpectedTryKill", resourceCulture);
+                return ResourceManager.GetString("Engine_UnexpectedTryKill", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Option name is empty.
+        /// </summary>
+        internal static string Options_EmptyName {
+            get {
+                return ResourceManager.GetString("Options_EmptyName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Option type is empty..
+        /// </summary>
+        internal static string Options_EmptyType {
+            get {
+                return ResourceManager.GetString("Options_EmptyType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid option type &apos;{0}&apos; for enum mapping..
+        /// </summary>
+        internal static string Options_InvalidOptionType {
+            get {
+                return ResourceManager.GetString("Options_InvalidOptionType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Malformed type string: property without value..
+        /// </summary>
+        internal static string Options_MalformedType {
+            get {
+                return ResourceManager.GetString("Options_MalformedType", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Unknown property &apos;{0}&apos; in type string..
         /// </summary>
-        internal static string UnknownProperty {
+        internal static string Options_UnknownProperty {
             get {
-                return ResourceManager.GetString("UnknownProperty", resourceCulture);
+                return ResourceManager.GetString("Options_UnknownProperty", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Unsupported option type &apos;{0}&apos;..
         /// </summary>
-        internal static string UnsupportedOptionType {
+        internal static string Options_UnsupportedOptionType {
             get {
-                return ResourceManager.GetString("UnsupportedOptionType", resourceCulture);
+                return ResourceManager.GetString("Options_UnsupportedOptionType", resourceCulture);
             }
         }
     }

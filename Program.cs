@@ -28,213 +28,202 @@ internal class Program
                     .Configure<Settings>(context.Configuration)
                     .AddSingleton<Engine>()
                     .AddSingleton<Board>()
-                    .AddSingleton<IRenderer, ConsoleRenderer>();
+                    .AddSingleton<ConsoleRenderer>();
             });
 
         IHost host = builder.Build();
 
-        await Run();
+        ILogger<Program>? logger = host.Services.GetRequiredService<ILogger<Program>>();
 
-        await host.RunAsync();
+        bool testsOk = RunTests(logger);
+
+        Console.WriteLine();
+        Console.WriteLine("Tests finished. Press any key to continue...");
+        Console.ReadKey(intercept: true);
+
+        if (testsOk)
+        {
+            ConsoleRenderer renderer = host.Services.GetRequiredService<ConsoleRenderer>();
+
+            await renderer.Run();
+        }
     }
 
-    private static async Task Run()
+    private static bool RunTests(ILogger<Program>? logger)
     {
-        Console.WriteLine("Board move tests starting...\n");
+        int failed = 0;
 
-        // Base starting position
-        var start = new Board();
+        Log(logger, $"Start engine test...{Environment.NewLine}");
 
-        // Basic tests (existing)
-        await RunTest("White pawn two-step (sets en-passant)", new Board(), "e2", "e4", true);
-        await RunTest("Illegal: move opponent piece (black pawn on a7 during white turn)", start, "a7", "a6", false);
-        await RunTest("Knight basic move g1->f3", start, "g1", "f3", true);
-        await RunTest("Blocked bishop f1->a6 (initial position)", start, "f1", "a6", false);
-        await RunTest("Blocked rook a1->a3 (initial position)", start, "a1", "a3", false);
+        RunTest("Basic moves...",
+            new Board(),
+            [
+                ("e2", "e4", true, "White pawn two-step — no en-passant square"),
+                ("b8", "c6", true, "Development of black knight"),
+                ("a7", "a6", false, "Attempt to move black pawn on white's turn"),
+                ("g1", "f3", true, "Development of white knight"),
+                ("a7", "a6", true, "Now black pawn can move"),
+                ("f1", "a6", true, "White bishop takes black pawn"),
+                ("b7", "a6", true, "Black pawnt takes white bishop"),
+                ("a1", "a3", false, "Rook blocked by own pawn at a2")
+            ],
+            logger,
+            ref failed);
 
-        // Promotion tests
+        RunTest("Promotion test (white)...",
+            new Board("8/4P2k/8/8/8/8/8/4K3 w - - 0 1"),
+            [
+                ("e7", "e8", true, "White pawn promotes - expect queen by default")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("Promotion test (black)...",
+            new Board("4k3/8/8/8/8/8/4p3/4K3 b - - 0 1"),
+            [
+                ("e2", "e1", false, "Black pawn promotes on e1 — blocked by white king")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("Kingside castling test...",
+            new Board("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"),
+            [
+                ("e1", "g1", true, "White kingside castle"),
+                ("e8", "g8", false, "Black can't castle queenside becasue of crossing chess"),
+                ("e8", "c8", true, "Black kingside castle")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("Queenside castling test...",
+            new Board("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1"),
+            [
+                ("e8", "c8", true, "Black queenside castle"),
+                ("e1", "c1", false, "White can't castle kingside becasue of crossing chess."),
+                ("e1", "g1", true, "White queenside castle")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("Illegal castle test...",
+            new Board("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"),
+            [
+                ("a1","a2", true, "Move white rook"),
+                ("h8","h7", true, "Move black rook"),
+                ("e1","c1", false, "Attempt castling after rook moved")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("En-passant sequence test...",
+            new Board(),
+            [
+                ("e2","e4", true, "White pawn two-step — no en-passant square"),
+                ("a7","a6", true, "Black pawn single step"),
+                ("e4","e5", true, "White pawn single step"),
+                ("d7","d5", true, "Black pawn two-step — eligible for en-passant"),
+                ("e5","d6", true, "White captures en-passant pawn")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("Pawn capture test...",
+            new Board("4k3/8/8/3p4/2P5/8/8/4K3 w - - 0 1"),
+            [
+                ("c4", "d5", true, "White pawn captures black pawn")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("Illegal notation test...",
+            new Board(),
+            [
+                ("e2", "e", false, "Invalid notation - missing rank"),
+                ("e2", "4", false, "Invalid notation - missing file"),
+                ("e2", "4e", false, "Invalid notation - wrong order")
+            ],
+            logger,
+            ref failed);
+
+        RunTest("Pin test...",
+            new Board("4r3/8/2k5/8/8/8/4N3/4K3 w - - 0 1"),
+            [
+                ("e2", "d4", false, "Knight pinned to king - can't move")
+            ],
+            logger,
+            ref failed);
+
+        if (failed > 0)
         {
-            var fenPromoteWhite = "8/4P2k/8/8/8/8/8/4K3 w - - 0 1";
-            var b = new Board(); b.FromFen(fenPromoteWhite);
-            await RunTest("Pawn promotion e7->e8 (white promotes to queen)", b, "e7", "e8", true);
-        }
-        {
-            // Corrected FEN: black pawn on e2 (rank 2) and black to move
-            var fenPromoteBlack = "4k3/8/8/8/8/8/4p3/4K3 b - - 0 1";
-            var b = new Board(); b.FromFen(fenPromoteBlack);
-            await RunTest("Pawn promotion e2->e1 (black promotes to queen)", b, "e2", "e1", true);
-        }
+            Log(logger, $"{Environment.NewLine}Engine test failed! Exiting...");
 
-        // Castling tests
-        {
-            var fenCastle = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
-            var b = new Board(); b.FromFen(fenCastle);
-            await RunTest("White kingside castling e1->g1", b, "e1", "g1", true);
-            b.FromFen(fenCastle);
-            await RunTest("White queenside castling e1->c1", b, "e1", "c1", true);
-            // Black side - use same piece placement but black to move
-            b.FromFen(fenCastle.Replace(" w ", " b "));
-            await RunTest("Black kingside castling e8->g8", b, "e8", "g8", true);
-            b.FromFen(fenCastle.Replace(" w ", " b "));
-            await RunTest("Black queenside castling e8->c8", b, "e8", "c8", true);
-        }
-
-        // Illegal castling: rook moved or path attacked
-        {
-            var fen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
-            var b = new Board(); b.FromFen(fen);
-            // move rook first (a1->a2), then try castle
-            await RunSequence("Illegal castle after rook moved", b, new[]{
-                ("a1","a2", true),
-                ("e1","g1", false)
-            });
-        }
-
-        // En-passant full sequence (from starting position)
-        {
-            var b = new Board();
-            await RunSequence("En-passant sequence e2-e4, a7-a6, e4-e5, d7-d5, e5xd6 ep", b, new[]{
-                ("e2","e4", true),
-                ("a7","a6", true),
-                ("e4","e5", true),
-                ("d7","d5", true),
-                ("e5","d6", true) // en-passant capture of pawn from d5
-            });
-        }
-
-        // Pawn capture and non-capture tests
-        {
-            // simple capture: white pawn on c4 can capture black pawn on d5
-            var fen = "8/8/8/3p4/2P5/8/8/4K3 w - - 0 1"; // white pawn c4 (c4), black pawn d5
-            var b = new Board(); b.FromFen(fen);
-            await RunTest("Pawn capture c4xd5", b, "c4", "d5", true);
-        }
-
-        // Knight crazy moves and invalid notation
-        await RunTest("Illegal notation (too short) -> should throw/catch", start, "e2", "e", false);
-        await RunTest("Knight jump b1->c3", start, "b1", "c3", true);
-
-        // Sliding pieces: rook/ bishop / queen path blocking and capturing
-        {
-            // Bishop on c3 is black so set side to move to 'b'
-            var fen = "8/8/8/8/8/2b5/8/4K3 b - - 0 1"; // bishop on c3 able to move
-            var b = new Board(); b.FromFen(fen);
-            await RunTest("Bishop c3->g7 (diagonal)", b, "c3", "g7", true);
-        }
-        {
-            // Rook on b2 is black so set side to move to 'b'
-            var fen = "8/8/8/8/8/8/1r6/4K3 b - - 0 1"; // rook on b2
-            var b = new Board(); b.FromFen(fen);
-            await RunTest("Rook b2->b4 (vertical)", b, "b2", "b4", true);
-            await RunTest("Rook b2->e2 (horizontal)", b, "b2", "e2", true);
-        }
-
-        // Pin detection (existing pinned knight test)
-        {
-            var fenPin = "4r3/8/8/8/8/8/4N3/4K3 w - - 0 1";
-            var b = new Board(); b.FromFen(fenPin);
-            await RunTest("Illegal: moving pinned knight e2->d4 (would expose king to rook)", b, "e2", "d4", false);
-        }
-
-        // Several "wild" randomized-ish small sequences to try varied rules
-        {
-            var b = new Board();
-            await RunSequence("Wild sequence: develop pieces and test collisions",
-                b,
-                new[]{
-                    ("g1","f3", true),   // N
-                    ("g8","f6", true),   // n
-                    ("f1","c4", true),   // B
-                    ("f8","c5", true),   // b
-                    ("d2","d4", true),   // pawn two
-                    ("e7","e5", true),   // pawn two
-                    ("d4","e5", true),   // pawn captures
-                    ("f6","e4", true),   // knight jumps into center
-                    ("e1","e2", false),  // illegal: king into own pawn (blocked) or move that might be invalid depending on board
-                });
-        }
-
-        // Final summary
-        Console.WriteLine($"\nTests finished. Passed: {passed}, Failed: {failed}");
-    }
-
-    private static int passed = 0;
-    private static int failed = 0;
-
-    private static async Task RunTest(string description, Board board, string from, string to, bool expect)
-    {
-        // Work on a fresh copy of the board passed in by cloning from its FEN to avoid test interference
-        var b = new Board();
-        b.FromFen(board.ToFen());
-
-        bool ok;
-        try
-        {
-            ok = b.Move(from, to);
-        }
-        catch (Exception ex)
-        {
-            ok = false;
-            Console.WriteLine($"  [EXCEPTION] {ex.GetType().Name}: {ex.Message}");
-        }
-
-        var fen = b.ToFen();
-
-        if (ok == expect)
-        {
-            passed++;
-            Console.WriteLine($"[PASS] {description}: Move {from}->{to} -> expected={expect} actual={ok}");
+            return false;
         }
         else
         {
-            failed++;
-            Console.WriteLine($"[FAIL] {description}: Move {from}->{to} -> expected={expect} actual={ok}");
-        }
+            Log(logger, $"{Environment.NewLine}Engine test done.");
 
-        Console.WriteLine($"       Resulting FEN: {fen}");
+            return true;
+        }
     }
 
-    /// <summary>
-    /// Run a sequence of moves on a single board instance (moves alternate colors).
-    /// Each tuple: (from, to, expectedResult).
-    /// </summary>
-    private static async Task RunSequence(string description, Board initialBoard, (string from, string to, bool expect)[] moves)
+    private static void RunTest(string description, Board board, (string from, string to, bool expect, string note)[] moves, ILogger<Program>? logger, ref int failed)
     {
-        Console.WriteLine($"\n[SEQ] {description}");
-        // clone initial board
-        var b = new Board();
-        b.FromFen(initialBoard.ToFen());
-
         int step = 1;
-        foreach (var mv in moves)
+
+        Log(logger, $"{Environment.NewLine}Running: {description}");
+
+        foreach (var move in moves)
         {
             bool ok;
+            Exception? ex = null;
+
+            Log(logger, $"[MOVE {step}] {move.from}-{move.to} | {move.note}");
+
             try
             {
-                ok = b.Move(mv.from, mv.to);
+                ok = board.Move(move.from, move.to);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
                 ok = false;
-                Console.WriteLine($"  [EXCEPTION] step {step} {mv.from}->{mv.to}: {ex.GetType().Name}: {ex.Message}");
+                ex = e;
             }
 
-            if (ok == mv.expect)
+            if (ok == move.expect)
             {
-                passed++;
-                Console.WriteLine($"  [PASS] step {step}: {mv.from}->{mv.to} -> expected={mv.expect} actual={ok}");
+                Log(logger, $"\t[PASS] expected={move.expect}/actual={ok}");
             }
             else
             {
                 failed++;
-                Console.WriteLine($"  [FAIL] step {step}: {mv.from}->{mv.to} -> expected={mv.expect} actual={ok}");
+
+                Log(logger, $"\t[FAIL] expected={move.expect}/actual={ok}");
             }
 
-            Console.WriteLine($"         FEN: {b.ToFen()}");
+            if (ex != null)
+            {
+                Log(logger, $"\t[EXCEPTION] {ex.Message}");
+            }
 
             step++;
         }
+    }
 
-        Console.WriteLine($"[SEQ END] {description} final FEN: {b.ToFen()}\n");
+    private static void Log(ILogger<Program>? logger, string message)
+    {
+#if DEBUG
+        Console.WriteLine(message);
+#else
+        if (logger != null)
+        {
+            logger.LogError("{Message}", message);
+        }
+        else
+        {
+            Console.WriteLine(message);
+        }
+#endif
     }
 }
